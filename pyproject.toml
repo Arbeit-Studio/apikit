@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "apikit"
+version = "0.1.0"
+description = "A requests + pydantic based kit to save you the trouble."
+authors = ["Johnny Wellington <johnny@arbeitstudio.com.br>"]
+license = "apache-2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = "^2.31.0"
+pydantic = "^2.7.1"
+requests-cache = "^1.2.0"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+responses = "^0.25.0"
+pytest-responses = "^0.5.1"
+pytest-cov = "^5.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
