@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-requests = "^2.31.0"
+requests = {version = "^2.31.0", extras = ["security"]}
 pydantic = "^2.7.1"
 requests-cache = "^1.2.0"
 
