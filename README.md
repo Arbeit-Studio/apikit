@@ -5,18 +5,10 @@ A requests + pydantic based fremawork to save you the trouble
 
 Add the **apikit** to the project dependencies using the **poetry add** command, or installing it with **pip install**. Specify the tag version if necessary.
 
-Installing the lastest version.
-
-```shell
-poetry add poetry add git+https://github.com/Arbeit-Studio/apikit.git
-```
-
-Especifying the version using git tags.
-
 ```shell
 poetry add poetry add git+https://github.com/Arbeit-Studio/apikit.git@v0.1.2
 ```
-To install using **pip**, the way you specify the repository is the same, just change the poetry command to the pip one.
+To install using **pip**, just change the poetry command to the pip one.
 
 ```shell
 pip install git+https://github.com/Arbeit-Studio/apikit.git@v0.1.2"
@@ -29,7 +21,6 @@ O Componente base para declarar um gateway é o `DefaultHTTPRequestGateway`.
 The component is called **Gateway** to denote a passthought gate where we'll have a optional check-in for concistency on both ends, when making a request and when receiving the response.
 
 In other words, it's a declarative way to define a request, specifying its HTTP verb, url, adapters, and expected data models.
-
 
 ### Example
 
@@ -78,4 +69,114 @@ If you define the response model, the return will be validated and the response 
 
 ```python
 ResponseBody(json={'bar': 'bar', 'foo': 'foo'})
+```
+
+## Easier Declaration with HTTPGatewaySpec
+
+The easyest whay to define a Gateway is using **HTTPGatewaySpec** [descriptor](https://docs.python.org/3.10/howto/descriptor.html). Under the hood the Spec will create a Gateway based on the details you declared and bind it to your class attribute.
+
+Modeling the same example from above using the **HTTPGatewaySpec** is simpler because it already use the default adapters, if you do not override them, so you just need to specify the *url*, *method*, *request_model* and *response_model*.
+
+Under the hood the Spec will create a Gateway based on the details you declared and bind it to your class attribute.
+
+```python
+from pydantic import BaseModel
+from apikit.specs import HTTPGatewaySpec
+from apikit.protocols import HTTPMethod
+
+class RequestBody(BaseModel):
+    foo: str
+    bar: str
+
+
+class ResponseBody(BaseModel):
+    json: dict
+
+
+class HttpBinOrgClient:
+
+    post_foo_bar = HTTPGatewaySpec(
+        url="https://httpbin.org/post",
+        method=HTTPMethod.POST,
+        request_model=RequestBody,
+        response_model=ResponseBody,
+    )
+```
+
+So, them you can make the request by calling the client object attribute.
+
+```python
+client = HttpBinOrgClient()
+
+client.post_foo_bar(RequestBody(foo="foo", bar="bar"))
+```
+
+And get the same response as before.
+
+```python
+ResponseBody(json={'bar': 'bar', 'foo': 'foo'})
+```
+
+You can also customize and reuse the Spec by overriding it's class atributes. Then, every gateway created by that same Spec will have the same attributes, and you won't need to previde them every time.
+
+```python
+from apikit.specs import HTTPGatewaySpec
+from apikit.protocols import HTTPMethod
+
+class MyCustomResponseAdapter(DefaultHTTPResponseAdapter):
+
+    def adapt(self, response):
+        return response.json()
+
+
+class MyAPIGatewayGETSpec(HTTPGatewaySpec, base_url="https://httpbin.org"):
+    method = HTTPMethod.POST
+    response_adapter = MyCustomResponseAdapter
+
+
+
+class HttpBinOrgClient:
+
+    post_foo_bar = MyAPIGatewayGETSpec(
+        url="/post",
+        request_model=RequestBody,
+        response_model=ResponseBody,
+    )
+```
+
+## Data Validation Parsing and Serialization
+
+The hard lifting of validation, parsing and serialization is done by the Pydantic models you define as *request_model* and *response_model*.
+
+Internally the default adapters creates a [TypeAdapter](https://docs.pydantic.dev/latest/api/type_adapter/) based on the provided models. Then uses it to validate the request data and serialize it, and also validate the response data and parse it.
+
+
+## Simpler Models
+
+If, for some reason, you don't whant to implement Pydantic's BaseModels. You can also use regular dataclasses and TypedDict as models for you data, if it's simple enought to be described that way.
+
+```python
+from dataclasses import dataclass
+from apikit.specs import HTTPGatewaySpec
+from apikit.protocols import HTTPMethod
+
+@dataclass
+class RequestBody:
+    foo: str
+    bar: str
+
+
+@dataclass
+class ResponseBody:
+    json: dict
+
+
+class HttpBinOrgClient:
+
+    post_foo_bar = HTTPGatewaySpec(
+        url="https://httpbin.org/post",
+        method=HTTPMethod.POST,
+        request_model=RequestBody,
+        response_model=ResponseBody,
+    )
 ```
