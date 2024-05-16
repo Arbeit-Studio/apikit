@@ -70,7 +70,6 @@ class DefaultHttpSession(Session, HttpSession):
         cls, *, context, authorizer: Authorizer = None, read_timeout: int = None  # type: ignore
     ) -> "DefaultHttpSession":
         """Retorna o a instância do context ou cria uma nova se não existir"""
-        read_timeout = read_timeout or 60
         context_key = cls._context_key(read_timeout)
         session = context.setdefault(
             context_key,
@@ -82,7 +81,8 @@ class DefaultHttpSession(Session, HttpSession):
         return session
 
     @classmethod
-    def _initialize(cls, authorizer, read_timeout):
+    def _initialize(cls, authorizer, read_timeout: int = None):
+        read_timeout = read_timeout or 60
         if authorizer is not None:
             return authorizer.authorize(cls(read_timeout=read_timeout))
         return cls(read_timeout=read_timeout)
@@ -95,7 +95,7 @@ class DefaultHttpSession(Session, HttpSession):
 
             return cls.from_context(context=current_app, **params)
         except:
-            return cls()
+            return cls._initialize(**params)
 
     @classmethod
     def _context_key(cls, salt):
