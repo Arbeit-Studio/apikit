@@ -153,7 +153,7 @@ Internally the default adapters creates a [TypeAdapter](https://docs.pydantic.de
 
 ## Simpler Models
 
-If, for some reason, you don't whant to implement Pydantic's BaseModels. You can also use regular dataclasses and TypedDict as models for you data, if it's simple enought to be described that way.
+If, for some reason, you don't whant to implement Pydantic's BaseModels. You can also use regular dataclasses and TypedDict as models for you data, if it's simple enough to be described that way.
 
 ```python
 from dataclasses import dataclass
