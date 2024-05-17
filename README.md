@@ -77,8 +77,6 @@ The easyest whay to define a Gateway is using **HTTPGatewaySpec** [descriptor](h
 
 Modeling the same example from above using the **HTTPGatewaySpec** is simpler because it already use the default adapters, if you do not override them, so you just need to specify the *url*, *method*, *request_model* and *response_model*.
 
-Under the hood the Spec will create a Gateway based on the details you declared and bind it to your class attribute.
-
 ```python
 from pydantic import BaseModel
 from apikit.specs import HTTPGatewaySpec
