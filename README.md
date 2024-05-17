@@ -28,7 +28,7 @@ On this example we declare a **POST** request to the [httpbin.org](https://httpb
 
 The data expected to be sent as the request body are declared on the `RequestBody` class. You can call it anything RequestBody is just the name I choose for the example.
 
-The data expected to be presente in the response body are declared on the `ResponseBody` class (Again, you may call it anithing). 
+The data expected to be presente in the response body are declared on the `ResponseBody` class (Again, you may call it anything). 
 
 The **httpbin.org** tool returns the same payload we send to it on the **json** atribute from the response body. That's why our `ResponseBody` defines the json attribute. You'll see in a moment. For more details on how to use httpbin.org for your tests check out it's documentation.
 
