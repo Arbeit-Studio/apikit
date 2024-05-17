@@ -16,7 +16,7 @@ pip install git+https://github.com/Arbeit-Studio/apikit.git@v0.1.2"
 
 ## Specifying the Gateway
 
-O Componente base para declarar um gateway é o `DefaultHTTPRequestGateway`.
+The component to declare a gateway is the `DefaultHTTPRequestGateway`.
 
 The component is called **Gateway** to denote a passthought gate where we'll have a optional check-in for concistency on both ends, when making a request and when receiving the response.
 
