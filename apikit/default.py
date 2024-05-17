@@ -104,7 +104,7 @@ class DefaultHTTPRequestGateway(HTTPRequestGateway, Generic[T, Q]):
     """_summary_
 
     Args:
-        http_session (HttpSession): To handle the request.
+        session (HttpSession): To handle the request.
         url (str): Complete URL without the query params.
         method (HTTPMethod): GET, POST, PUT, etc.
         headers (Optional[dict], optional): The same key/values requests can handle.
@@ -118,14 +118,14 @@ class DefaultHTTPRequestGateway(HTTPRequestGateway, Generic[T, Q]):
     def __init__(
         self,
         *,
-        http_session: HttpSession,
+        session: HttpSession,
         url: str,
         method: HTTPMethod,
         headers: Optional[dict] = None,
         request_adapter: Optional[HTTPRequestAdapter[type[T]]] = None,
         response_adapter: Optional[HTTPResponseAdapter[type[Q]]] = None,
     ):
-        self.session = http_session
+        self.session = session
         self.url = url
         self.method = method
         self.request_adapter = request_adapter or DefaultHTTPRequestAdapter()

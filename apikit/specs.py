@@ -1,6 +1,6 @@
 from functools import partialmethod
 from inspect import isclass
-from typing import Union
+from typing import Optional, Union
 from typing_extensions import dataclass_transform
 from urllib.parse import urlparse
 from apikit.protocols import (
@@ -23,6 +23,14 @@ from apikit.default import (
 
 def get_url(base_url, url):
     parsed_url = urlparse(url)
+    parsed_base_url = urlparse(base_url)
+    if not (
+        (parsed_url.scheme and parsed_url.netloc)
+        or (parsed_base_url.scheme and parsed_base_url.netloc)
+    ):
+        raise ValueError(
+            "Either the base_url or url must be a valid URL with scheme and netloc."
+        )
     if not (parsed_url.scheme and parsed_url.netloc):
         return base_url + url
     return url
@@ -31,25 +39,78 @@ def get_url(base_url, url):
 def _init_fn(
     self,
     *,
-    url: str,
-    method: HTTPMethod,
-    request_adapter: Union[
-        HTTPRequestAdapter, type[HTTPRequestAdapter]
-    ] = DefaultHTTPRequestAdapter,
-    response_adapter: Union[
-        HTTPResponseAdapter, type[HTTPResponseAdapter]
-    ] = DefaultHTTPResponseAdapter,
+    url: str = None,
+    method: HTTPMethod = None,
+    base_url: Optional[str] = "",
+    request_adapter: Union[HTTPRequestAdapter, type[HTTPRequestAdapter]] = None,
+    response_adapter: Union[HTTPResponseAdapter, type[HTTPResponseAdapter]] = None,
     request_model=None,
     response_model=None,
-    session: type[HttpSession] = DefaultHttpSession,
+    session: type[HttpSession] = None,
     authorizer: StaticTokenSessionAuthorizer = None,
-    request: type[HTTPRequestGateway] = DefaultHTTPRequestGateway,
+    gateway: type[HTTPRequestGateway] = None,
     **kwargs,
 ):
-    if isclass(request):
-        assert url, "url must be provided"
-        url = get_url(base_url=self.base_url, url=url)
-        assert method, "method must be provided"
+    """
+    Initializes the API specification object.
+
+    All passed arguments are prioritized over class attributes. But, if not provided,
+    class attributes are used, so we benefit from class inheritance to declare common
+    attributes
+
+    Despite having default values, url and method are required not to be None
+    base_url is optional, but if not provided, url must be a full URL
+
+    Args:
+        url (str, optional): The URL for the API endpoint. Defaults to None.
+        method (HTTPMethod, optional): The HTTP method for the API endpoint. Defaults to None.
+        base_url (str, optional): The base URL for the API. Defaults to "".
+        request_adapter (HTTPRequestAdapter, type[HTTPRequestAdapter], optional): The request adapter for the API. Defaults to None.
+        response_adapter (HTTPResponseAdapter, type[HTTPResponseAdapter], optional): The response adapter for the API. Defaults to None.
+        request_model (optional): The request model for the API. Defaults to None.
+        response_model (optional): The response model for the API. Defaults to None.
+        session (type[HttpSession], optional): The HTTP session for the API. Defaults to None.
+        authorizer (StaticTokenSessionAuthorizer, optional): The authorizer for the API. Defaults to None.
+        gateway (type[HTTPRequestGateway], optional): The gateway for the API. Defaults to None.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        The initialized gateway object.
+
+    Raises:
+        AssertionError: If required arguments are not provided.
+
+    """
+    # If gateway is already initialized, return it
+    if gateway and not isclass(gateway):
+        return gateway
+
+    url = url or getattr(self, "url", None)
+    assert url, "url must be provided"
+    base_url = base_url or getattr(self, "base_url", None)
+    url = get_url(base_url, url)
+
+    method = method or getattr(self, "method", None)
+    assert method, "method must be provided"
+
+    request_model = request_model or getattr(self, "request_model", None)
+    response_model = response_model or getattr(self, "response_model", None)
+
+    request_adapter = (
+        request_adapter
+        or getattr(self, "request_adapter", None)
+        or DefaultHTTPRequestAdapter
+    )
+    response_adapter = (
+        response_adapter
+        or getattr(self, "response_adapter", None)
+        or DefaultHTTPResponseAdapter
+    )
+    session = session or getattr(self, "session", None) or DefaultHttpSession
+
+    authorizer = authorizer or getattr(self, "authorizer", None)
+
+    gateway = gateway or getattr(self, "gateway", None) or DefaultHTTPRequestGateway
 
     initialized_session = session.from_app_context_or_new(authorizer=authorizer)
 
@@ -65,8 +126,8 @@ def _init_fn(
         else response_adapter
     )
 
-    self.request = request(
-        http_session=initialized_session,
+    self.gateway = gateway(
+        session=initialized_session,
         url=url,
         method=method,
         request_adapter=initialized_request_adapter,
@@ -76,18 +137,16 @@ def _init_fn(
 
 @dataclass_transform()
 class MetaSpec(type):
-    def __new__(metacls, name, bases, attrs, base_url="", auth_token=None):
+    def __new__(metacls, name, bases, attrs):
         cls = super().__new__(metacls, name, bases, attrs)
         setattr(cls, "__init__", partialmethod(_init_fn, **attrs))
-        cls.base_url = base_url
-        cls.auth_token = auth_token
         return cls
 
 
 class HTTPGatewaySpec(metaclass=MetaSpec):
 
     def __get__(self, instance, owner):
-        return self.request
+        return self.gateway
 
     def __set_name__(self, owner, name):
         self.name = name
