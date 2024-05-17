@@ -42,7 +42,7 @@ def _init_fn(
     request_model=None,
     response_model=None,
     session: type[HttpSession] = DefaultHttpSession,
-    authorizer: type[StaticTokenSessionAuthorizer] = StaticTokenSessionAuthorizer,
+    authorizer: StaticTokenSessionAuthorizer = None,
     request: type[HTTPRequestGateway] = DefaultHTTPRequestGateway,
     **kwargs,
 ):
@@ -51,9 +51,7 @@ def _init_fn(
         url = get_url(base_url=self.base_url, url=url)
         assert method, "method must be provided"
 
-    initialized_session = session.from_app_context_or_new(
-        autorizer=(authorizer(token=self.auth_token) if self.auth_token else None)
-    )
+    initialized_session = session.from_app_context_or_new(authorizer=authorizer)
 
     initialized_request_adapter = (
         request_adapter(model=request_model)

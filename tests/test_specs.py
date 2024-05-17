@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from apikit.session import StaticTokenSessionAuthorizer
 import pytest
 from apikit.default import (
     DefaultHTTPRequestAdapter,
@@ -111,3 +113,22 @@ def test_http_gateway_get_spec_init():
 def test_http_gateway_post_spec_init():
     spec = HTTPGatewayPOSTSpec(url="https://test.com")
     assert spec.request.method == HTTPMethod.POST
+
+
+def test_http_gateway_spec_base_url():
+    class TestHTTPGatewaySpec(HTTPGatewaySpec, base_url="https://test.com"):
+        url = "/test"
+        method = HTTPMethod.GET
+
+    spec = TestHTTPGatewaySpec()
+    assert spec.request.url == "https://test.com/test"
+
+
+def test_Http_gateway_spec_init_with_authorizer():
+    class TestHTTPGatewaySpec(HTTPGatewaySpec, base_url="https://test.com"):
+        url = "/test"
+        method = HTTPMethod.GET
+        authorizer = StaticTokenSessionAuthorizer(token="test_token")
+
+    spec = TestHTTPGatewaySpec()
+    assert spec.request.session.auth.token == "test_token"
