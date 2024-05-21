@@ -203,7 +203,7 @@ def test_http_request_adapter_for_get(model, instance, session, url, headers):
 def test_http_request_gateway_prepare_get(model, instance, session, url, headers):
     method = HTTPMethod.GET
     gateway = DefaultHTTPRequestGateway(
-        http_session=session,
+        session=session,
         url=url,
         method=method,
         request_adapter=DefaultHTTPRequestAdapter(model),
@@ -230,7 +230,7 @@ def test_http_request_gateway_prepare_get(model, instance, session, url, headers
 def test_http_request_gateway_prepare_post(model, instance, session, url, headers):
     method = HTTPMethod.POST
     gateway = DefaultHTTPRequestGateway(
-        http_session=session,
+        session=session,
         url=url,
         method=method,
         request_adapter=DefaultHTTPRequestAdapter(model),
@@ -259,7 +259,7 @@ def test_http_request_gateway_receive_post(
 ):
     method = HTTPMethod.POST
     gateway = DefaultHTTPRequestGateway(
-        http_session=session,
+        session=session,
         url=url,
         method=method,
         request_adapter=...,
@@ -284,7 +284,7 @@ def test_http_request_gateway_receive_get(
 ):
     method = HTTPMethod.GET
     gateway = DefaultHTTPRequestGateway(
-        http_session=session,
+        session=session,
         url=url,
         method=method,
         request_adapter=...,
@@ -307,7 +307,7 @@ def test_http_request_gateway_receive_get(
 def test_http_request_gateway_execute_get(model, instance, session, url, headers):
     method = HTTPMethod.GET
     gateway = DefaultHTTPRequestGateway(
-        http_session=session,
+        session=session,
         url=url,
         method=method,
         request_adapter=DefaultHTTPRequestAdapter(model),
@@ -334,7 +334,7 @@ def test_http_request_gateway_execute_get(model, instance, session, url, headers
 def test_http_request_gateway_execute_post(model, instance, session, url, headers):
     method = HTTPMethod.POST
     gateway = DefaultHTTPRequestGateway(
-        http_session=session,
+        session=session,
         url=url,
         method=method,
         request_adapter=DefaultHTTPRequestAdapter(model),

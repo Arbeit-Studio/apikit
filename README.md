@@ -50,7 +50,7 @@ class ResponseBody(BaseModel):
 
 
 gateway = DefaultHTTPRequestGateway(
-    http_session=DefaultHttpSession(),
+    session=DefaultHttpSession(),
     url="https://httpbin.org/post",
     method=HTTPMethod.POST,
     request_adapter=DefaultHTTPRequestAdapter(model=RequestBody),
