@@ -145,6 +145,36 @@ class MetaSpec(type):
 
 class HTTPGatewaySpec(metaclass=MetaSpec):
 
+    def __init__(
+        self,
+        *,
+        url: str = None,
+        method: HTTPMethod = None,
+        base_url: Optional[str] = "",
+        request_adapter: Union[HTTPRequestAdapter, type[HTTPRequestAdapter]] = None,
+        response_adapter: Union[HTTPResponseAdapter, type[HTTPResponseAdapter]] = None,
+        request_model=None,
+        response_model=None,
+        session: type[HttpSession] = None,
+        authorizer: StaticTokenSessionAuthorizer = None,
+        gateway: type[HTTPRequestGateway] = None,
+        **kwargs,
+    ):
+        _init_fn(
+            self,
+            url=url,
+            method=method,
+            base_url=base_url,
+            request_adapter=request_adapter,
+            response_adapter=response_adapter,
+            request_model=request_model,
+            response_model=response_model,
+            session=session,
+            authorizer=authorizer,
+            gateway=gateway,
+            **kwargs,
+        )
+
     def __get__(self, instance, owner):
         return self.gateway
 
