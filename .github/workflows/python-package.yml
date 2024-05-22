@@ -31,4 +31,4 @@ jobs:
         poetry install
     - name: Test with pytest
       run: |
-        pytest tests --cov-report term --cov=apikit --cov-fail-under=98
+        poetry run pytest tests --cov-report term --cov=apikit --cov-fail-under=98
