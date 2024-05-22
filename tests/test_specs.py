@@ -6,11 +6,8 @@ from apikit.default import (
     DefaultHTTPResponseAdapter,
 )
 from apikit.session import DefaultHttpSession
-from apikit.protocols import (
-    HTTPMethod,
-    HTTPRequestAdapter,
-    HTTPResponseAdapter,
-)
+from apikit.protocols import HTTPMethod
+
 from apikit.specs import (
     HTTPGatewayGETSpec,
     HTTPGatewayPOSTSpec,
@@ -54,7 +51,7 @@ def test_http_gateway_spec_init_with_default_http_response_adapter():
 
 
 def test_http_gateway_spec_init_with_override_http_request_adapter_class():
-    class TestHTTPRequestAdapter(HTTPRequestAdapter): ...
+    class TestHTTPRequestAdapter(DefaultHTTPRequestAdapter): ...
 
     spec = HTTPGatewaySpec(
         url="https://test.com",
@@ -65,7 +62,7 @@ def test_http_gateway_spec_init_with_override_http_request_adapter_class():
 
 
 def test_http_gateway_spec_init_with_override_http_response_adapter_class():
-    class TestHTTPResponseAdapter(HTTPResponseAdapter): ...
+    class TestHTTPResponseAdapter(DefaultHTTPResponseAdapter): ...
 
     spec = HTTPGatewaySpec(
         url="https://test.com",
@@ -76,7 +73,7 @@ def test_http_gateway_spec_init_with_override_http_response_adapter_class():
 
 
 def test_http_gateway_spec_init_with_override_http_request_adapter_instance():
-    class TestHTTPRequestAdapter(HTTPRequestAdapter): ...
+    class TestHTTPRequestAdapter(DefaultHTTPRequestAdapter): ...
 
     spec = HTTPGatewaySpec(
         url="https://test.com",
@@ -87,7 +84,7 @@ def test_http_gateway_spec_init_with_override_http_request_adapter_instance():
 
 
 def test_http_gateway_spec_init_with_override_http_response_adapter_instance():
-    class TestHTTPResponseAdapter(HTTPResponseAdapter): ...
+    class TestHTTPResponseAdapter(DefaultHTTPResponseAdapter): ...
 
     spec = HTTPGatewaySpec(
         url="https://test.com",
@@ -173,7 +170,7 @@ def test_http_gateway_spec_inheritance_with_method_attribute():
 
 
 def test_http_gateway_spec_inheritance_with_request_adapter_attribute():
-    class TestDefaultHTTPRequestAdapter(HTTPRequestAdapter): ...
+    class TestDefaultHTTPRequestAdapter(DefaultHTTPRequestAdapter): ...
 
     class TestHTTPGatewaySpec(
         HTTPGatewaySpec,
@@ -188,7 +185,7 @@ def test_http_gateway_spec_inheritance_with_request_adapter_attribute():
 
 
 def test_http_gateway_spec_inheritance_with_response_adapter_attribute():
-    class TestDefaultHTTPResponseAdapter(HTTPResponseAdapter): ...
+    class TestDefaultHTTPResponseAdapter(DefaultHTTPResponseAdapter): ...
 
     class TestHTTPGatewaySpec(
         HTTPGatewaySpec,

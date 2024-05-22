@@ -73,16 +73,12 @@ class HTTPResponse(Protocol):
 
 
 class HTTPResponseAdapter(Protocol, Generic[Q]):
-    def __init__(self, model: Any):
-        raise NotImplementedError  # pragma: no cover
 
     def adapt(self, response: HTTPResponse) -> Union[Q, HTTPResponse]:
         raise NotImplementedError  # pragma: no cover
 
 
 class HTTPRequestAdapter(Protocol, Generic[T]):
-    def __init__(self, model: Optional[type[T]] = None):
-        raise NotImplementedError  # pragma: no cover
 
     def adapt(
         self,
