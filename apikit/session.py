@@ -29,6 +29,7 @@ class StaticTokenSessionAuthorizer(Authorizer):
     """Sets retrieve and set a BearerTokenAuth in the session's auth property"""
 
     def __init__(self, token: str) -> None:
+        assert isinstance(token, str), "Token must be a string"
         self.token = token
         self.obfuscated_token = "*" * (len(self.token) - 4) + self.token[-4:]
 
