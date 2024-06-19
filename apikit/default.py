@@ -92,7 +92,7 @@ class DefaultHTTPRequestAdapter(HTTPRequestAdapter, Generic[T]):
     ) -> HTTPRequest:
         kwargs = {"method": method.value, "url": url, "headers": headers}
         # It might have a optimization to do here if whe dump directly to JSON.
-        adapted = self.adapter.dump_python(data, exclude_none=True, exclude_unset=True)
+        adapted = self.adapter.dump_python(data, mode="json", exclude_none=True, exclude_unset=True)
         if is_like_post(method):
             kwargs["json"] = adapted
         if is_like_get(method):
