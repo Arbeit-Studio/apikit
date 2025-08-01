@@ -1,17 +1,18 @@
 from typing import Generic, Optional, Union
+
 from pydantic import TypeAdapter
 from requests import Request
 
 from apikit.protocols import (
-    Q,
-    T,
     HTTPMethod,
-    HTTPRequest,
     HTTPRequestAdapter,
     HTTPRequestGateway,
+    HTTPRequestParams,
     HTTPResponse,
     HTTPResponseAdapter,
     HttpSession,
+    Q,
+    T,
 )
 
 
@@ -84,20 +85,27 @@ class DefaultHTTPRequestAdapter(HTTPRequestAdapter, Generic[T]):
     def adapt(
         self,
         *,
-        session: HttpSession,
         method: HTTPMethod,
         url: str,
+        timeout: Optional[int] = None,
         data: Optional[T] = None,
         headers: Optional[dict] = None,
-    ) -> HTTPRequest:
-        kwargs = {"method": method.value, "url": url, "headers": headers}
-        # It might have a optimization to do here if whe dump directly to JSON.
-        adapted = self.adapter.dump_python(data, mode="json", exclude_none=True, exclude_unset=True)
+    ) -> HTTPRequestParams:
+        kwargs = {
+            "method": method.value,
+            "url": url,
+            "headers": headers,
+            "timeout": (3.5, timeout),
+        }
+
+        adapted = self.adapter.dump_python(
+            data, mode="json", exclude_none=True, exclude_unset=True
+        )
         if is_like_post(method):
             kwargs["json"] = adapted
         if is_like_get(method):
             kwargs["params"] = adapted
-        return session.prepare_request(Request(**kwargs))
+        return kwargs
 
 
 class DefaultHTTPRequestGateway(HTTPRequestGateway, Generic[T, Q]):
@@ -121,6 +129,7 @@ class DefaultHTTPRequestGateway(HTTPRequestGateway, Generic[T, Q]):
         session: HttpSession,
         url: str,
         method: HTTPMethod,
+        timeout: Optional[int] = None,
         headers: Optional[dict] = None,
         request_adapter: Optional[HTTPRequestAdapter[type[T]]] = None,
         response_adapter: Optional[HTTPResponseAdapter[type[Q]]] = None,
@@ -131,18 +140,19 @@ class DefaultHTTPRequestGateway(HTTPRequestGateway, Generic[T, Q]):
         self.request_adapter = request_adapter or DefaultHTTPRequestAdapter()
         self.response_adapter = response_adapter or DefaultHTTPResponseAdapter()
         self.headers = headers
+        self.timeout = timeout
 
-    def prepare(self, data: Optional[T] = None) -> HTTPRequest:
+    def prepare(self, data: Optional[T] = None) -> HTTPRequestParams:
         return self.request_adapter.adapt(
-            session=self.session,
             url=self.url,
             method=self.method,
             data=data,
             headers=self.headers,
+            timeout=self.timeout,
         )
 
     def egress(self, request) -> HTTPResponse:
-        return self.session.send(request)
+        return self.session.request(**request)
 
     def ingress(self, response: HTTPResponse) -> Union[Q, HTTPResponse]:
         return self.response_adapter.adapt(response)

@@ -1,8 +1,15 @@
 from functools import partialmethod
 from inspect import isclass
 from typing import Optional, Union
-from typing_extensions import dataclass_transform
 from urllib.parse import urlparse
+
+from typing_extensions import dataclass_transform
+
+from apikit.default import (
+    DefaultHTTPRequestAdapter,
+    DefaultHTTPRequestGateway,
+    DefaultHTTPResponseAdapter,
+)
 from apikit.protocols import (
     HTTPMethod,
     HTTPRequestAdapter,
@@ -10,15 +17,7 @@ from apikit.protocols import (
     HTTPResponseAdapter,
     HttpSession,
 )
-from apikit.session import (
-    DefaultHttpSession,
-    StaticTokenSessionAuthorizer,
-)
-from apikit.default import (
-    DefaultHTTPRequestAdapter,
-    DefaultHTTPRequestGateway,
-    DefaultHTTPResponseAdapter,
-)
+from apikit.session import DefaultHttpSession, StaticTokenSessionAuthorizer
 
 
 def get_url(base_url, url):
@@ -42,6 +41,7 @@ def _init_fn(
     url: str = None,
     method: HTTPMethod = None,
     base_url: Optional[str] = "",
+    timeout: Optional[int] = None,
     request_adapter: Union[HTTPRequestAdapter, type[HTTPRequestAdapter]] = None,
     response_adapter: Union[HTTPResponseAdapter, type[HTTPResponseAdapter]] = None,
     request_model=None,
@@ -130,6 +130,7 @@ def _init_fn(
         session=initialized_session,
         url=url,
         method=method,
+        timeout=timeout,
         request_adapter=initialized_request_adapter,
         response_adapter=initialized_response_adapter,
     )
@@ -151,6 +152,7 @@ class HTTPGatewaySpec(metaclass=MetaSpec):
         url: str = None,
         method: HTTPMethod = None,
         base_url: Optional[str] = "",
+        timeout: Optional[int] = None,
         request_adapter: Union[HTTPRequestAdapter, type[HTTPRequestAdapter]] = None,
         response_adapter: Union[HTTPResponseAdapter, type[HTTPResponseAdapter]] = None,
         request_model=None,
@@ -165,6 +167,7 @@ class HTTPGatewaySpec(metaclass=MetaSpec):
             url=url,
             method=method,
             base_url=base_url,
+            timeout=timeout,
             request_adapter=request_adapter,
             response_adapter=response_adapter,
             request_model=request_model,

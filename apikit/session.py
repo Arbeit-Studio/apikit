@@ -44,11 +44,10 @@ class StaticTokenSessionAuthorizer(Authorizer):
 class DefaultHttpSession(Session, HttpSession):
     """Extensão da Session do requests utilizada para requisições"""
 
-    def __init__(self, read_timeout: int = None) -> None:
-        read_timeout = read_timeout or 60
+    def __init__(self) -> None:
         # setup cache
         super().__init__()
-        # setup headers padrões
+        # setup headers
         self.headers.update(
             {
                 "Content-Type": "application/json",
@@ -56,37 +55,31 @@ class DefaultHttpSession(Session, HttpSession):
                 "User-Agent": "HTTP Gateway/1.0",
             }
         )
-
         # setup retry
         retry = Retry(total=3, backoff_factor=0.35)
         self.mount("https://", HTTPAdapter(max_retries=retry))
         self.mount("http://", HTTPAdapter(max_retries=retry))
 
-        # setup timeout
-        self.request = partial(self.request, timeout=(3.5, read_timeout))  # type: ignore
         logger.debug(f"Initialized: {self}")
 
     @classmethod
     def from_context(
-        cls, *, context, authorizer: Authorizer = None, read_timeout: int = None  # type: ignore
+        cls, *, context, authorizer: Authorizer = None  # type: ignore
     ) -> "DefaultHttpSession":
-        """Retorna o a instância do context ou cria uma nova se não existir"""
-        context_key = cls._context_key(read_timeout)
+        """Get one instance from the app context or create a new one and store there."""
+        context_key = cls._context_key()
         session = context.setdefault(
             context_key,
-            cls._initialize(authorizer, read_timeout),
+            cls._initialize(authorizer),
         )
-        logger.debug(
-            f"Pegando {cls.__name__} com timeout={read_timeout} do app context."
-        )
+        logger.debug(f"Getting session {cls.__name__} from app context.")
         return session
 
     @classmethod
-    def _initialize(cls, authorizer, read_timeout: int = None):
-        read_timeout = read_timeout or 60
+    def _initialize(cls, authorizer):
         if authorizer is not None:
-            return authorizer.authorize(cls(read_timeout=read_timeout))
-        return cls(read_timeout=read_timeout)
+            return authorizer.authorize(cls())
+        return cls()
 
     @classmethod
     def from_app_context_or_new(cls, **params) -> "DefaultHttpSession":
@@ -99,22 +92,21 @@ class DefaultHttpSession(Session, HttpSession):
             return cls._initialize(**params)
 
     @classmethod
-    def _context_key(cls, salt):
+    def _context_key(cls, salt=""):
         return cls.__name__ + str(salt)
 
 
 class DefaultCachedHttpSession(CachedSession, DefaultHttpSession):
     """Session HTTP com cache"""
 
-    def __init__(self, read_timeout: int = None) -> None:
+    def __init__(self) -> None:
         # setup cache
 
         super().__init__(
             cache_name="default_api_cache",
             backend="sqlite",
-            expire_after=60 * 30,  # 1 minuto * 30 = 30 minutos
+            expire_after=60 * 30,  # 30 minutes
             stale_if_error=True,
             stale_while_revalidate=True,
             cache_control=True,
-            read_timeout=read_timeout or 60,
         )

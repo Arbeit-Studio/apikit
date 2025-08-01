@@ -4,7 +4,7 @@ from unittest.mock import create_autospec
 
 import pytest
 import responses
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 from requests import HTTPError, Response, Session
 from requests.models import RequestEncodingMixin
 from typing_extensions import TypedDict
@@ -77,18 +77,6 @@ def to_dict(instance):
         return asdict(instance)
 
 
-def encode_instance(instance):
-    return json.dumps(to_dict(instance)).encode() if instance else None
-
-
-def encode_params(params):
-    return RequestEncodingMixin._encode_params(params)
-
-
-def prepare_url(url, params):
-    return url + "?" + encode_params(to_dict(params)) if params else url
-
-
 @pytest.fixture(scope="module")
 def url():
     return "http://test.com/user"
@@ -151,16 +139,14 @@ def test_http_response_adapter_with_400_or_more_response(model, response):
         (None, None),
     ],
 )
-def test_http_request_adapter_for_post(model, instance, session, url, headers):
+def test_http_request_adapter_for_post(model, instance, url, headers):
     adapter = DefaultHTTPRequestAdapter(model)
     method = HTTPMethod.POST
-    request = adapter.adapt(
-        session=session, url=url, method=method, data=instance, headers=headers
-    )
-    assert request.url == url
-    assert request.method == method.value
-    assert request.body == encode_instance(instance)
-    assert headers.items() <= request.headers.items()
+    request = adapter.adapt(url=url, method=method, data=instance, headers=headers)
+    assert request["url"] == url
+    assert request["method"] == method.value
+    assert request["json"] == to_dict(instance)
+    assert headers.items() <= request["headers"].items()
 
 
 @pytest.mark.unit
@@ -173,16 +159,14 @@ def test_http_request_adapter_for_post(model, instance, session, url, headers):
         (None, None),
     ],
 )
-def test_http_request_adapter_for_get(model, instance, session, url, headers):
+def test_http_request_adapter_for_get(model, instance, url, headers):
     adapter = DefaultHTTPRequestAdapter(model)
     method = HTTPMethod.GET
-    request = adapter.adapt(
-        session=session, url=url, method=method, data=instance, headers=headers
-    )
-    expected_url = prepare_url(url, instance)
-    assert request.url == expected_url
-    assert request.method == method.value
-    assert headers.items() <= request.headers.items()
+    request = adapter.adapt(url=url, method=method, data=instance, headers=headers)
+    assert request["url"] == url
+    assert request["params"] == to_dict(instance)
+    assert request["method"] == method.value
+    assert headers.items() <= request["headers"].items()
 
 
 # endregion
@@ -210,11 +194,11 @@ def test_http_request_gateway_prepare_get(model, instance, session, url, headers
         response_adapter=...,
         headers=headers,
     )
-    prepared_url = prepare_url(url, instance)
     request = gateway.prepare(instance)
-    assert request.url == prepared_url
-    assert request.method == method.value
-    assert headers.items() <= request.headers.items()
+    assert request["url"] == url
+    assert request["params"] == to_dict(instance)
+    assert request["method"] == method.value
+    assert headers.items() <= request["headers"].items()
 
 
 @pytest.mark.unit
@@ -238,10 +222,10 @@ def test_http_request_gateway_prepare_post(model, instance, session, url, header
         headers=headers,
     )
     request = gateway.prepare(instance)
-    assert request.url == url
-    assert request.method == method.value
-    assert request.body == encode_instance(instance)
-    assert headers.items() <= request.headers.items()
+    assert request["url"] == url
+    assert request["method"] == method.value
+    assert request["json"] == to_dict(instance)
+    assert headers.items() <= request["headers"].items()
 
 
 @pytest.mark.unit
@@ -314,10 +298,9 @@ def test_http_request_gateway_execute_get(model, instance, session, url, headers
         response_adapter=DefaultHTTPResponseAdapter(model),
         headers=headers,
     )
-    expected_url = prepare_url(url, instance)
-    response_if_none_model = responses.get(expected_url, json=to_dict(instance))
+    response_if_none_model = responses.get(url, json=to_dict(instance))
     response = gateway(instance)
-    # se o model é nulo o retorno é a própira response
+    # return the request object if the model is None
     assert response == instance or response_if_none_model
 
 
@@ -345,6 +328,11 @@ def test_http_request_gateway_execute_post(model, instance, session, url, header
     response = gateway(instance)
     # se o model é nulo o retorno é a própira response
     assert response == instance or response_if_none_model
+
+
+# endregion
+
+# region Timeout Tests
 
 
 # endregion

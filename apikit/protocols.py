@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import Any, Callable, Generic, Optional, Protocol, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, Protocol, TypedDict, TypeVar, Union
+
 from typing_extensions import Self
 
 T = TypeVar("T", contravariant=True)
@@ -14,11 +15,13 @@ class HTTPMethod(Enum):
     OPTIONS = "OPTIONS"
 
 
-class HTTPRequest(Protocol):
+class HTTPRequestParams(TypedDict):
     url: str
     method: HTTPMethod
-    body: bytes
     headers: dict
+    timeout: int
+    json: dict
+    params: dict
 
 
 class Authorizer(Protocol):
@@ -33,6 +36,27 @@ class Authorizer(Protocol):
 class HttpSession(Protocol):
     auth: Callable
 
+    def request(
+        self,
+        method,
+        url,
+        params=None,
+        data=None,
+        headers=None,
+        cookies=None,
+        files=None,
+        auth=None,
+        timeout=None,
+        allow_redirects=True,
+        proxies=None,
+        hooks=None,
+        stream=None,
+        verify=None,
+        cert=None,
+        json=None,
+    ):
+        raise NotImplementedError
+
     def get(self, url, **kwargs):
         raise NotImplementedError  # pragma: no cover
 
@@ -45,15 +69,15 @@ class HttpSession(Protocol):
     def delete(self, url, **kwargs):
         raise NotImplementedError  # pragma: no cover
 
-    def send(self, request: HTTPRequest):
+    def send(self, request: HTTPRequestParams):
         raise NotImplemented  # pragma: no cover
 
-    def prepare_request(self, request: HTTPRequest):
+    def prepare_request(self, request: HTTPRequestParams):
         raise NotImplemented  # pragma: no cover
 
     @classmethod
     def from_context(
-        cls, *, context, authorizer: Optional[Authorizer] = None, read_timeout: int = None  # type: ignore
+        cls, *, context, authorizer: Optional[Authorizer] = None  # type: ignore
     ) -> Self:
         raise NotImplemented  # pragma: no cover
 
@@ -83,15 +107,28 @@ class HTTPRequestAdapter(Protocol, Generic[T]):
     def adapt(
         self,
         *,
-        session: HttpSession,
         url: str,
         method: HTTPMethod,
+        timeout: Optional[int] = None,
         data: Optional[T],
         headers: Optional[dict],
-    ):
+    ) -> HTTPRequestParams:
         raise NotImplemented  # pragma: no cover
 
 
 class HTTPRequestGateway(Protocol, Generic[T, Q]):
+
+    def __init__(
+        self,
+        *,
+        session: HttpSession,
+        url: str,
+        method: HTTPMethod,
+        timeout: Optional[int] = None,
+        headers: Optional[dict] = None,
+        request_adapter: Optional[HTTPRequestAdapter[type[T]]] = None,
+        response_adapter: Optional[HTTPResponseAdapter[type[Q]]] = None,
+    ): ...
+
     def __call__(self, params: Optional[T]) -> Union[Q, HTTPResponse]:
         raise NotImplementedError  # pragma: no cover
