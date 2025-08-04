@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "apikit"
- version = "0.1.4"
+version = "0.1.5"
 description = "A requests + pydantic based kit to save you the trouble."
 authors = ["Johnny Wellington <johnny@arbeitstudio.com.br>"]
 license = "apache-2.0"

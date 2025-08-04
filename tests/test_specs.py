@@ -1,18 +1,17 @@
-from apikit.session import StaticTokenSessionAuthorizer
+from typing import Any
+from unittest.mock import patch
+
 import pytest
+import requests
+
 from apikit.default import (
     DefaultHTTPRequestAdapter,
     DefaultHTTPRequestGateway,
     DefaultHTTPResponseAdapter,
 )
-from apikit.session import DefaultHttpSession
 from apikit.protocols import HTTPMethod
-
-from apikit.specs import (
-    HTTPGatewayGETSpec,
-    HTTPGatewayPOSTSpec,
-    HTTPGatewaySpec,
-)
+from apikit.session import DefaultHttpSession, StaticTokenSessionAuthorizer
+from apikit.specs import HTTPGatewayGETSpec, HTTPGatewayPOSTSpec, HTTPGatewaySpec
 
 
 def test_http_gateway_spec_init_with_none_url():
@@ -239,3 +238,31 @@ def test_http_gateway_spec_inheritance_with_gateway_attribute():
 
     spec = TestChildHTTPGatewaySpec(url="https://test.com")
     assert isinstance(spec.gateway, TestHTTPGateway)
+
+
+@pytest.mark.parametrize(
+    "read_timeout, expected",
+    [(120, (3.5, 120)), (60, (3.5, 60)), (None, (3.5, None)), (5, (3.5, 5))],
+)
+def test_http_gateway_spec_with_timeout_attribute(read_timeout, expected):
+    with patch.object(DefaultHttpSession, "request") as mock_request:
+
+        class TestTimeoutHTTPGatewaySpec(HTTPGatewaySpec):
+            url = "http://test.com"
+            method = HTTPMethod.GET
+            session = DefaultHttpSession
+            timeout = read_timeout
+
+        class TestTimeoutClient:
+            test_timeout_request_spec = TestTimeoutHTTPGatewaySpec()
+
+        test_timeout_client = TestTimeoutClient()
+
+        test_timeout_client.test_timeout_request_spec({})
+        mock_request.assert_called_once_with(
+            method="GET",
+            url="http://test.com",
+            headers=None,
+            timeout=expected,
+            params={},
+        )
