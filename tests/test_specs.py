@@ -266,3 +266,62 @@ def test_http_gateway_spec_with_timeout_attribute(read_timeout, expected):
             timeout=expected,
             params={},
         )
+
+
+@pytest.mark.parametrize(
+    "child_timeout, expected",
+    [(30, (3.5, 30)), (90, (3.5, 90)), (None, (3.5, None)), (0, (3.5, 0))],
+)
+def test_http_gateway_spec_inheritance_with_timeout_override(child_timeout, expected):
+    with patch.object(DefaultHttpSession, "request") as mock_request:
+
+        class BaseTimeoutHTTPGatewaySpec(HTTPGatewaySpec):
+            url = "http://test.com"
+            method = HTTPMethod.GET
+            session = DefaultHttpSession
+            timeout = 60  # Default timeout in base spec
+
+        class ChildTimeoutHTTPGatewaySpec(BaseTimeoutHTTPGatewaySpec):
+            timeout = child_timeout
+
+        class TestTimeoutClient:
+            test_timeout_request_spec = ChildTimeoutHTTPGatewaySpec()
+
+        test_timeout_client = TestTimeoutClient()
+
+        test_timeout_client.test_timeout_request_spec({})
+        mock_request.assert_called_once_with(
+            method="GET",
+            url="http://test.com",
+            headers=None,
+            timeout=expected,
+            params={},
+        )
+
+
+def test_http_gateway_spec_inheritance_without_timeout_override():
+    with patch.object(DefaultHttpSession, "request") as mock_request:
+
+        class BaseTimeoutHTTPGatewaySpec(HTTPGatewaySpec):
+            url = "http://test.com"
+            method = HTTPMethod.GET
+            session = DefaultHttpSession
+            timeout = 45  # Default timeout in base spec
+
+        class ChildHTTPGatewaySpec(BaseTimeoutHTTPGatewaySpec):
+            # Child does not override timeout, should inherit parent's timeout
+            pass
+
+        class TestTimeoutClient:
+            test_timeout_request_spec = ChildHTTPGatewaySpec()
+
+        test_timeout_client = TestTimeoutClient()
+
+        test_timeout_client.test_timeout_request_spec({})
+        mock_request.assert_called_once_with(
+            method="GET",
+            url="http://test.com",
+            headers=None,
+            timeout=(3.5, 45),  # Should use parent's timeout of 45
+            params={},
+        )

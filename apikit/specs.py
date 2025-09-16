@@ -92,7 +92,7 @@ def _init_fn(
 
     method = method or getattr(self, "method", None)
     assert method, "method must be provided"
-
+    timeout = timeout or getattr(self, "timeout", None)
     request_model = request_model or getattr(self, "request_model", None)
     response_model = response_model or getattr(self, "response_model", None)
 
