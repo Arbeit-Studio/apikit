@@ -169,6 +169,80 @@ def test_http_request_adapter_for_get(model, instance, url, headers):
     assert headers.items() <= request["headers"].items()
 
 
+class BMUserWithFalsyFields(BaseModel):
+    name: str
+    active: bool = False
+    count: int = 0
+    description: str = ""
+
+
+@pytest.mark.unit
+def test_http_request_adapter_does_not_exclude_falsy_values(url, headers):
+    """Regression test: ensure False, 0, and empty string are NOT excluded.
+
+    Previously, exclude_unset=True was causing fields with falsy default values
+    to be excluded from the request payload when not explicitly set.
+    """
+    user = BMUserWithFalsyFields(name="Test", active=False, count=0, description="")
+    adapter = DefaultHTTPRequestAdapter(BMUserWithFalsyFields)
+    method = HTTPMethod.POST
+
+    request = adapter.adapt(url=url, method=method, data=user, headers=headers)
+
+    assert request["json"]["name"] == "Test"
+    assert request["json"]["active"] is False
+    assert request["json"]["count"] == 0
+    assert request["json"]["description"] == ""
+
+
+@pytest.mark.unit
+def test_http_request_adapter_excludes_none_values(url, headers):
+    """Ensure None values are still excluded from the request payload."""
+    from typing import Optional
+
+    class ModelWithOptional(BaseModel):
+        name: str
+        optional_field: Optional[str] = None
+
+    user = ModelWithOptional(name="Test")
+    adapter = DefaultHTTPRequestAdapter(ModelWithOptional)
+    method = HTTPMethod.POST
+
+    request = adapter.adapt(url=url, method=method, data=user, headers=headers)
+
+    assert request["json"]["name"] == "Test"
+    assert "optional_field" not in request["json"]
+
+
+@pytest.mark.unit
+def test_http_request_adapter_keeps_unset_default_values(url, headers):
+    """Regression test: ensure fields with default values are included
+    even when not explicitly set during model instantiation.
+
+    Previously, exclude_unset=True was causing fields with defaults
+    to be excluded when they weren't explicitly provided.
+    """
+
+    class ModelWithDefaults(BaseModel):
+        name: str
+        active: bool = True
+        count: int = 10
+        tag: str = "default"
+
+    # Only set 'name', leave other fields to use their defaults
+    user = ModelWithDefaults(name="Test")
+    adapter = DefaultHTTPRequestAdapter(ModelWithDefaults)
+    method = HTTPMethod.POST
+
+    request = adapter.adapt(url=url, method=method, data=user, headers=headers)
+
+    # All fields should be present, including unset ones with defaults
+    assert request["json"]["name"] == "Test"
+    assert request["json"]["active"] is True
+    assert request["json"]["count"] == 10
+    assert request["json"]["tag"] == "default"
+
+
 # endregion
 
 # region HttpRequestGateway Tests

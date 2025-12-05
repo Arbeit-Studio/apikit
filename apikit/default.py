@@ -98,9 +98,7 @@ class DefaultHTTPRequestAdapter(HTTPRequestAdapter, Generic[T]):
             "timeout": (3.5, timeout),
         }
 
-        adapted = self.adapter.dump_python(
-            data, mode="json", exclude_none=True, exclude_unset=True
-        )
+        adapted = self.adapter.dump_python(data, mode="json", exclude_none=True)
         if is_like_post(method):
             kwargs["json"] = adapted
         if is_like_get(method):
