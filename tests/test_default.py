@@ -1,12 +1,12 @@
 import json
 from dataclasses import asdict, dataclass, is_dataclass
+from typing import Optional
 from unittest.mock import create_autospec
 
 import pytest
 import responses
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel
 from requests import HTTPError, Response, Session
-from requests.models import RequestEncodingMixin
 from typing_extensions import TypedDict
 
 from apikit.default import (
@@ -198,7 +198,6 @@ def test_http_request_adapter_does_not_exclude_falsy_values(url, headers):
 @pytest.mark.unit
 def test_http_request_adapter_excludes_none_values(url, headers):
     """Ensure None values are still excluded from the request payload."""
-    from typing import Optional
 
     class ModelWithOptional(BaseModel):
         name: str
