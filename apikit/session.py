@@ -15,6 +15,9 @@ from apikit.protocols import Authorizer, HttpSession
 
 logger = logging.getLogger(__name__)
 
+# Name of the dict, inside the context, that holds the sessions.
+CONTEXT_SESSIONS_KEY = "apikit_http_sessions"
+
 
 class BearerTokenAuth(AuthBase):
     def __init__(self, token: str) -> None:
@@ -39,6 +42,16 @@ class StaticTokenSessionAuthorizer(Authorizer):
 
     def __str__(self) -> str:
         return f"{type(self).__name__}({self.obfuscated_token})"
+
+    # Equal tokens authorize a session the same way, so the authorizers are
+    # interchangeable — and share a session in the app context.
+    def __eq__(self, other) -> bool:
+        if type(other) is not type(self):
+            return NotImplemented
+        return other.token == self.token
+
+    def __hash__(self) -> int:
+        return hash((type(self), self.token))
 
 
 class DefaultHttpSession(Session, HttpSession):
@@ -66,34 +79,48 @@ class DefaultHttpSession(Session, HttpSession):
     def from_context(
         cls, *, context, authorizer: Authorizer = None  # type: ignore
     ) -> "DefaultHttpSession":
-        """Get one instance from the app context or create a new one and store there."""
-        context_key = cls._context_key()
-        session = context.setdefault(
-            context_key,
-            cls._initialize(authorizer),
-        )
-        logger.debug(f"Getting session {cls.__name__} from app context.")
+        """Get one instance from the context or create a new one and store there.
+
+        `context` is anything with `setdefault`, like `flask.g` or a dict. There
+        is one session per session class and authorizer: equal authorizers (two
+        `StaticTokenSessionAuthorizer` with the same token) share a session, and
+        sessions with different credentials are never shared.
+        """
+        sessions = context.setdefault(CONTEXT_SESSIONS_KEY, {})
+        context_key = cls._context_key(authorizer)
+        try:
+            session = sessions.get(context_key)
+        except TypeError:
+            # An unhashable authorizer can't be a key: no sharing for it.
+            return cls._initialize(authorizer)
+        if session is None:
+            session = sessions[context_key] = cls._initialize(authorizer)
+            logger.debug(f"Session {cls.__name__} stored in the context.")
         return session
 
     @classmethod
-    def _initialize(cls, authorizer):
+    def _initialize(cls, authorizer=None):
         if authorizer is not None:
             return authorizer.authorize(cls())
         return cls()
 
     @classmethod
     def from_app_context_or_new(cls, **params) -> "DefaultHttpSession":
-        """Retorna o a instância do app context ou cria uma nova se não existir"""
-        try:
-            from flask import current_app
+        """Return the session stored in Flask's app context (`flask.g`).
 
-            return cls.from_context(context=current_app, **params)
-        except:
+        Outside an app context, or without Flask installed, return a new one.
+        """
+        try:
+            from flask import g, has_app_context
+        except ImportError:
             return cls._initialize(**params)
+        if not has_app_context():
+            return cls._initialize(**params)
+        return cls.from_context(context=g, **params)
 
     @classmethod
-    def _context_key(cls, salt=""):
-        return cls.__name__ + str(salt)
+    def _context_key(cls, authorizer=None):
+        return (cls, authorizer)
 
 
 class DefaultCachedHttpSession(CachedSession, DefaultHttpSession):

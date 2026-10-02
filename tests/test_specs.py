@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 import requests
+from flask import Flask
 
 from apikit.default import (
     DefaultHTTPRequestAdapter,
@@ -325,3 +326,40 @@ def test_http_gateway_spec_inheritance_without_timeout_override():
             timeout=(3.5, 45),  # Should use parent's timeout of 45
             params={},
         )
+
+
+def test_http_gateway_specs_share_session_inside_flask_app_context():
+    authorizer = StaticTokenSessionAuthorizer(token="test_token")
+    with Flask(__name__).app_context():
+        first = HTTPGatewayGETSpec(url="https://test.com/a", authorizer=authorizer)
+        second = HTTPGatewayPOSTSpec(url="https://test.com/b", authorizer=authorizer)
+    assert first._gateway.session is second._gateway.session
+    assert first._gateway.session.auth.token == "test_token"
+
+
+def test_http_gateway_specs_with_different_authorizers_do_not_share_session():
+    with Flask(__name__).app_context():
+        first = HTTPGatewayGETSpec(
+            url="https://test.com/a",
+            authorizer=StaticTokenSessionAuthorizer(token="first_token"),
+        )
+        second = HTTPGatewayGETSpec(
+            url="https://test.com/b",
+            authorizer=StaticTokenSessionAuthorizer(token="second_token"),
+        )
+    assert first._gateway.session is not second._gateway.session
+    assert first._gateway.session.auth.token == "first_token"
+    assert second._gateway.session.auth.token == "second_token"
+
+
+def test_http_gateway_specs_with_equal_authorizers_share_session():
+    with Flask(__name__).app_context():
+        first = HTTPGatewayGETSpec(
+            url="https://test.com/a",
+            authorizer=StaticTokenSessionAuthorizer(token="test_token"),
+        )
+        second = HTTPGatewayGETSpec(
+            url="https://test.com/b",
+            authorizer=StaticTokenSessionAuthorizer(token="test_token"),
+        )
+    assert first._gateway.session is second._gateway.session
