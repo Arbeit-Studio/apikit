@@ -128,14 +128,15 @@ class MyCustomResponseAdapter(DefaultHTTPResponseAdapter):
         return response.json()
 
 
-class MyAPIGatewayGETSpec(HTTPGatewaySpec, base_url="https://httpbin.org"):
+class MyAPIGatewayPOSTSpec(HTTPGatewaySpec):
+    base_url = "https://httpbin.org"
     method = HTTPMethod.POST
     response_adapter = MyCustomResponseAdapter
 
 
 class HttpBinOrgClient:
 
-    post_foo_bar = MyAPIGatewayGETSpec(
+    post_foo_bar = MyAPIGatewayPOSTSpec(
         url="/post",
         request_model=RequestBody,
         response_model=ResponseBody,
