@@ -16,22 +16,22 @@ from apikit.specs import HTTPGatewayGETSpec, HTTPGatewayPOSTSpec, HTTPGatewaySpe
 
 
 def test_http_gateway_spec_init_with_none_url():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match="url must be provided"):
         HTTPGatewaySpec(url=None, method=HTTPMethod.GET)
 
 
 def test_http_gateway_spec_init_with_no_url():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match="url must be provided"):
         HTTPGatewaySpec(method=HTTPMethod.GET)
 
 
 def test_http_gateway_spec_init_with_none_method():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match="method must be provided"):
         HTTPGatewaySpec(url="https://test.com", method=None)
 
 
 def test_http_gateway_spec_init_no_method():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match="method must be provided"):
         HTTPGatewaySpec(url="https://test.com")
 
 
@@ -363,3 +363,37 @@ def test_http_gateway_specs_with_equal_authorizers_share_session():
             authorizer=StaticTokenSessionAuthorizer(token="test_token"),
         )
     assert first._gateway.session is second._gateway.session
+
+
+def test_http_gateway_spec_init_with_unexpected_kwarg():
+    with pytest.raises(TypeError, match="timout"):
+        HTTPGatewaySpec(url="https://test.com", method=HTTPMethod.GET, timout=5)
+
+
+def test_http_gateway_spec_init_with_headers():
+    spec = HTTPGatewaySpec(
+        url="https://test.com",
+        method=HTTPMethod.GET,
+        headers={"X-Custom": "test"},
+    )
+    assert spec._gateway.headers == {"X-Custom": "test"}
+
+
+def test_http_gateway_spec_inheritance_with_headers_attribute():
+    class TestHeadersSpec(HTTPGatewaySpec):
+        url = "https://test.com"
+        method = HTTPMethod.GET
+        headers = {"Authorization": "Bearer token"}
+
+    spec = TestHeadersSpec()
+    assert spec._gateway.headers == {"Authorization": "Bearer token"}
+
+
+def test_http_gateway_spec_init_headers_override_class_attribute():
+    class TestHeadersSpec(HTTPGatewaySpec):
+        url = "https://test.com"
+        method = HTTPMethod.GET
+        headers = {"Authorization": "Bearer token"}
+
+    spec = TestHeadersSpec(headers={"Authorization": "Bearer new_token"})
+    assert spec._gateway.headers == {"Authorization": "Bearer new_token"}

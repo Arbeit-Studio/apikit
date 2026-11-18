@@ -40,6 +40,7 @@ class HTTPGatewaySpec:
     base_url: str = ""
     method: HTTPMethod = None
     timeout: int = None
+    headers: Optional[dict] = None
     session: type[HttpSession] = DefaultHttpSession
     authorizer: StaticTokenSessionAuthorizer = None
     request_adapter = DefaultHTTPRequestAdapter
@@ -55,6 +56,7 @@ class HTTPGatewaySpec:
         method: HTTPMethod = None,
         base_url: Optional[str] = "",
         timeout: Optional[int] = None,
+        headers: Optional[dict] = None,
         request_adapter: Union[HTTPRequestAdapter, type[HTTPRequestAdapter]] = None,
         response_adapter: Union[HTTPResponseAdapter, type[HTTPResponseAdapter]] = None,
         request_model=None,
@@ -62,7 +64,6 @@ class HTTPGatewaySpec:
         session: type[HttpSession] = None,
         authorizer: StaticTokenSessionAuthorizer = None,
         gateway: type[HTTPRequestGateway] = None,
-        **kwargs,
     ):
         cls = type(self)
 
@@ -71,6 +72,7 @@ class HTTPGatewaySpec:
         _method = method or getattr(cls, "method", None)
         _base_url = base_url or getattr(cls, "base_url", "") or ""
         _timeout = timeout or getattr(cls, "timeout", None)
+        _headers = headers or getattr(cls, "headers", None)
         _request_adapter = request_adapter or getattr(
             cls, "request_adapter", DefaultHTTPRequestAdapter
         )
@@ -83,8 +85,10 @@ class HTTPGatewaySpec:
         _auth = authorizer or getattr(cls, "authorizer", None)
         _gateway = gateway or getattr(cls, "gateway", DefaultHTTPRequestGateway)
 
-        assert _url, "url must be provided"
-        assert _method, "method must be provided"
+        if not _url:
+            raise ValueError("url must be provided")
+        if not _method:
+            raise ValueError("method must be provided")
 
         _full_url = get_url(_base_url, _url)
         _session_instance = _session.from_app_context_or_new(authorizer=_auth)
@@ -106,6 +110,7 @@ class HTTPGatewaySpec:
             url=_full_url,
             method=_method,
             timeout=_timeout,
+            headers=_headers,
             request_adapter=_initialized_request_adapter,
             response_adapter=_initialized_response_adapter,
         )
